@@ -15,6 +15,7 @@ from zipfile import BadZipFile
 from xml.etree.ElementTree import ParseError
 
 from pypdf.errors import PyPdfError
+from werkzeug.security import check_password_hash
 
 from flask import Flask, Response, abort, flash, redirect, render_template, request, send_file, session, url_for
 
@@ -22,12 +23,24 @@ from agents import ApplicationAgent, EMAIL, MAX_FILE, MailSettings, ResumeAgent,
 
 TZ = ZoneInfo('Asia/Karachi')
 DEFAULT_QUERIES = 'frontend, React developer'
+HOSTED = os.environ.get('JOB_AGENT_HOSTED') == '1'
+HOST = os.environ.get('JOB_AGENT_HOST', '').strip().lower()
+USERNAME = os.environ.get('JOB_AGENT_USERNAME', '').strip()
+PASSWORD_HASH = os.environ.get('JOB_AGENT_PASSWORD_HASH', '')
+SESSION_KEY = os.environ.get('JOB_AGENT_SESSION_KEY', '')
+if HOSTED and (
+    not HOST.endswith('.ts.net') or not HOST.replace('.', '').replace('-', '').isalnum()
+    or not USERNAME or not PASSWORD_HASH.startswith('scrypt:') or len(SESSION_KEY) < 32
+    or not os.environ.get('JOB_AGENT_DATA_DIR')
+):
+    raise RuntimeError('Set the hosted dashboard hostname, credentials, session secret, and persistent data directory.')
 DATA = Path(os.environ.get('JOB_AGENT_DATA_DIR', Path.home()/'.python-job-agent'))
 DATA.mkdir(mode=0o700, parents=True, exist_ok=True)
 app = Flask(__name__)
-app.config.update(SECRET_KEY=secrets.token_hex(32), MAX_CONTENT_LENGTH=MAX_FILE+65536,
-                  SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict',
-                  TRUSTED_HOSTS=['127.0.0.1', 'localhost'])
+app.config.update(SECRET_KEY=SESSION_KEY if HOSTED else secrets.token_hex(32),
+                  MAX_CONTENT_LENGTH=MAX_FILE+65536, SESSION_COOKIE_HTTPONLY=True,
+                  SESSION_COOKIE_SAMESITE='Strict', SESSION_COOKIE_SECURE=HOSTED,
+                  TRUSTED_HOSTS=[HOST, '127.0.0.1', 'localhost'] if HOSTED else ['127.0.0.1', 'localhost'])
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS resume (
@@ -123,6 +136,14 @@ def daily_events():
 
 @app.before_request
 def protect():
+    if HOSTED:
+        auth = request.authorization
+        authorized = auth and auth.type == 'basic' and secrets.compare_digest(
+            (auth.username or '').encode(), USERNAME.encode()
+        ) and check_password_hash(PASSWORD_HASH, auth.password or '')
+        if not authorized:
+            return Response('Dashboard sign-in required.', status=401,
+                            headers={'WWW-Authenticate': 'Basic realm="Python Job Agent", charset="UTF-8"'})
     if not session.get('csrf'):
         session['csrf'] = secrets.token_hex(32)
     if request.method == 'POST' and not secrets.compare_digest(session['csrf'].encode(), request.form.get('csrf','').encode()):

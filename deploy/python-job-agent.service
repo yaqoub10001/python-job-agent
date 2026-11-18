@@ -1,0 +1,24 @@
+[Unit]
+Description=Python Job Agent dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=job-agent
+Group=job-agent
+WorkingDirectory=/opt/python-job-agent
+EnvironmentFile=/etc/python-job-agent.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=python-job-agent
+StateDirectoryMode=0700
+ExecStart=/opt/python-job-agent/.venv/bin/gunicorn --bind 127.0.0.1:8765 --workers 2 --threads 2 --timeout 210 app:app
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=Find international remote jobs and prepare applications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=job-agent
+Group=job-agent
+WorkingDirectory=/opt/python-job-agent
+EnvironmentFile=/etc/python-job-agent.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=python-job-agent
+StateDirectoryMode=0700
+ExecStart=/opt/python-job-agent/.venv/bin/python app.py discover
+TimeoutStartSec=240
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

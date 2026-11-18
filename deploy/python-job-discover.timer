@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily job discovery at 9 AM Pakistan time
+
+[Timer]
+OnCalendar=*-*-* 09:00:00 Asia/Karachi
+Persistent=true
+
+[Install]
+WantedBy=timers.target

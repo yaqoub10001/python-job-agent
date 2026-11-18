@@ -41,3 +41,7 @@ The default is implicit TLS on port 465. For STARTTLS set `JOB_AGENT_SMTP_MODE=s
 After uploading your résumé, run `app.py discover` with the same virtual environment Python. It searches the default roles and creates drafts without sending them. You can run this command daily with Windows Task Scheduler or cron. The email step still requires your approval in the dashboard.
 
 The résumé, drafts, and reports are stored in your local SQLite database under `.python-job-agent` in your home directory. Use `JOB_AGENT_DATA_DIR` to choose a different directory. The app listens on localhost. Keep the dashboard private because it displays résumé content and application history.
+
+## Host on a private VM
+
+See [the Oracle VM deployment guide](deploy/README.md) for an HTTPS dashboard accessible from your phone, persistent SQLite storage, and daily discovery.
