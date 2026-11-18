@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }} · Python Job Agent{% endblock %}
+{% block body %}
+<div class="review">
+<a href="{{ url_for('index',_anchor='queue') }}">Back to applications</a>
+<h1>{{ job.title }}</h1><p>{{ job.company }} · {{ job.country or 'Employer country unverified' }} · {{ job.eligibility }}</p>
+<p class="tags"><span>{{ row.status }}</span>{% if row.detail %}<span>{{ row.detail }}</span>{% endif %}</p>
+{% if job.proof %}<p><a href="{{ job.proof }}" target="_blank" rel="noopener">Employer location source</a></p>{% endif %}
+<section class="panel"><h2>Tailored résumé</h2>
+{% if draft.skills %}<p><strong>Matching skills</strong> {{ draft.skills|join(', ') }}</p>{% endif %}
+{% if draft.evidence %}<ul>{% for item in draft.evidence %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+<a class="quiet" href="{{ url_for('pdf',key=row.id) }}">Download résumé PDF</a>
+</section>
+<section class="panel"><h2>Application</h2>
+{% if expired %}<p>This listing has expired.</p>{% endif %}
+{% if job.channel == 'email' and row.status == 'Prepared' and not expired %}
+<p>Send to <strong>{{ job.recipient }}</strong>. <a href="{{ job.source }}" target="_blank" rel="noopener">Check the official listing</a>.</p>
+<form method="post" action="{{ url_for('send_application',key=row.id) }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Email message<textarea name="note" maxlength="5000" rows="7" required>{{ draft.note }}</textarea></label>
+<label class="check"><input required type="checkbox" name="approve" value="yes"> Approve sending this note and résumé to {{ job.recipient }}.</label>
+<button type="submit">Send application</button>
+</form>
+{% elif job.channel == 'portal' %}
+<label>Application note<textarea readonly rows="7">{{ draft.note }}</textarea></label>
+{% if not expired %}<p><a class="primary" href="{{ job.link }}" target="_blank" rel="noopener">Open employer application</a></p>{% endif %}
+<p class="muted"><a href="{{ job.source }}" target="_blank" rel="noopener">Listing source: Himalayas</a></p>
+{% if row.status == 'Prepared' %}
+<form method="post" action="{{ url_for('record_portal',key=row.id) }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label class="check"><input required type="checkbox" name="confirmed" value="yes"> I submitted my application and saw the employer’s confirmation.</label><button type="submit" class="quiet">Record submission</button>
+</form>
+{% endif %}
+{% endif %}
+</section>
+</div>
+{% endblock %}

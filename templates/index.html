@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="hero">
+<div class="accent"></div><p class="eyebrow">INTERNATIONAL REMOTE WORK</p>
+<h1>Your job search,<br>with a team behind it.</h1><p>Start with one master résumé. Find eligible roles, prepare tailored copies, and track where each application stands.</p>
+</section>
+<div class="layout">
+<aside>
+<section class="panel">
+<h2>Master résumé</h2>
+{% if resume %}<p class="muted">Loaded <strong>{{ resume.name }}</strong></p>{% else %}<p class="muted">PDF, DOCX, or TXT · up to 10 MB</p>{% endif %}
+<form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf" value="{{ csrf }}"><label class="file">Choose résumé<input required type="file" name="resume" accept=".pdf,.docx,.txt"></label>
+<label class="check"><input type="checkbox" name="discover_now" value="yes" {{ "checked" if not resume else "" }}> Search and tailor résumés after upload</label>
+<button type="submit" class="quiet">{{ 'Replace résumé' if resume else 'Upload résumé' }}</button>
+</form>
+</section>
+<section class="panel">
+<h2>Search agent</h2>
+<form method="post" action="{{ url_for('run_search') }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Roles or skills <input name="queries" value="{{ queries }}" maxlength="180" placeholder="Separate searches with commas"></label>
+<label class="check"><input type="checkbox" name="allow_unverified" value="yes"> Include employers with unverified headquarters</label>
+<button type="submit">Find jobs and tailor résumés</button>
+</form><p class="muted">Up to five new drafts per run. Job listings from <a href="https://himalayas.app" target="_blank" rel="noopener">Himalayas</a>.</p>
+</section>
+<details class="panel">
+<summary>Import a direct-email application</summary>
+<form method="post" action="{{ url_for('import_email') }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Job title<input name="title" maxlength="160" required></label>
+<label>Company<input name="company" maxlength="100" required></label>
+<label>Employer country<input name="country" maxlength="100" required></label>
+<label>Official listing URL<input type="url" name="source" maxlength="1500" required></label>
+<label>Advertised application email<input type="email" name="recipient" maxlength="254" required></label>
+<label>Job description<textarea name="description" maxlength="14000" required></textarea></label>
+<label class="check"><input required type="checkbox" name="verified_email" value="yes"> The official listing invites applications at this email, accepts applicants from Pakistan, and the employer is based abroad.</label>
+<button type="submit">Prepare email application</button>
+</form>
+</details>
+</aside>
+<div>
+<section class="queue" id="queue">
+<div class="section-heading"><div><h2>Application queue</h2><p class="muted">{{ jobs|length }} saved {{ 'role' if jobs|length == 1 else 'roles' }}</p></div></div>
+{% for row,job,draft in jobs %}
+<article class="job"><div><h3><a href="{{ url_for('review',key=row.id) }}">{{ job.title }}</a></h3><p>{{ job.company }} · {{ job.country or 'Employer country unverified' }}</p>
+<div class="tags"><span>{{ job.eligibility }}</span><span>{{ draft.skills|length }} skill matches</span><span>{{ row.status }}</span></div></div>
+<a class="quiet" href="{{ url_for('review',key=row.id) }}">Review</a></article>
+{% else %}<p class="panel empty">Upload a résumé and run the search agent to prepare your first applications.</p>{% endfor %}
+</section>
+<section class="queue report" id="report">
+<div class="section-heading"><div><h2>Today’s report</h2><p class="muted">{{ today }} · Pakistan time</p></div><a class="quiet" href="{{ url_for('report') }}">Export CSV</a></div>
+{% if events %}<div class="panel table-scroll"><table><thead><tr><th>Time</th><th>Company and role</th><th>Status</th></tr></thead><tbody>
+{% for event in events %}<tr><td>{{ event.happened[11:16] }}</td><td><strong>{{ event.company }}</strong><br>{{ event.title }}</td><td>{{ event.status }}{% if event.detail %}<br><small>{{ event.detail }}</small>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="panel empty">Today’s activity will appear here.</p>{% endif %}
+</section>
+</div>
+</div>
+{% endblock %}
